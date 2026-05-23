@@ -1,273 +1,413 @@
 "use client";
-import { useEffect, useState } from "react";
-import { getSiteData, setSiteData, SiteData, DEFAULT_DATA, Project } from "@/lib/store";
-import { Settings, Layout, User, Folder, Eye, Save, Plus, Trash2, ChevronLeft, Palette } from "lucide-react";
-const Github = ({ size }: { size: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Settings, Layout, User, Folder, Eye, Save, Plus, Trash2, ChevronLeft, Palette, Award, Code2, LogOut, Key, Menu, X } from "lucide-react";
+import { DEFAULT_DATA, SiteData, Project } from "@/lib/store";
+
+type Tab = "hero" | "bio" | "theme" | "projects" | "certificates" | "skills" | "github" | "terminal" | "learning" | "settings";
+
+type Cert = { id?: number; title: string; issuer: string; date: string; credential_url: string; skills: string };
+type SkillEntry = { label: string; value: number };
+type LearningTopic = { id: string; name: string; icon: string; status: string; progress: number; desc: string; why: string };
+type GitHubCommit = { repo: string; message: string; date: string };
+
+const TABS: { id: Tab; icon: React.ReactNode; label: string }[] = [
+  { id: "hero",         icon: <Layout size={15} />,  label: "Hero" },
+  { id: "bio",          icon: <User size={15} />,    label: "About & Bio" },
+  { id: "theme",        icon: <Palette size={15} />, label: "Theme" },
+  { id: "projects",     icon: <Folder size={15} />,  label: "Projects" },
+  { id: "certificates", icon: <Award size={15} />,   label: "Certificates" },
+  { id: "skills",       icon: <Code2 size={15} />,   label: "Skill Radar" },
+  { id: "github",       icon: <Code2 size={15} />,   label: "GitHub Activity" },
+  { id: "terminal",     icon: <Code2 size={15} />,   label: "Terminal" },
+  { id: "learning",     icon: <Code2 size={15} />,   label: "Learning" },
+  { id: "settings",     icon: <Settings size={15} />, label: "Settings" },
+];
+
+const inp: React.CSSProperties = { width: "100%", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 14px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: 14, outline: "none", boxSizing: "border-box" };
+const ta: React.CSSProperties = { ...inp, minHeight: 90, resize: "vertical" as const };
+const lbl: React.CSSProperties = { display: "block", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, letterSpacing: "0.1em", color: "var(--muted)", marginBottom: 6 };
+const field: React.CSSProperties = { marginBottom: 18 };
+const sectionTitle = (t: string, sub: string) => (
+  <div style={{ marginBottom: 28 }}>
+    <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, marginBottom: 4 }}>{t}</h2>
+    <p style={{ color: "var(--muted)", fontSize: 13 }}>{sub}</p>
+  </div>
 );
 
-type Tab = "hero" | "bio" | "theme" | "projects";
-
 export default function Dashboard() {
-  const [data, setData] = useState<SiteData>(DEFAULT_DATA);
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("hero");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [data, setData] = useState<SiteData>(DEFAULT_DATA);
+  const [certs, setCerts] = useState<Cert[]>([]);
+  const [skills, setSkills] = useState<SkillEntry[]>([
+    { label: "Frontend", value: 88 }, { label: "Backend", value: 78 },
+    { label: "Mobile", value: 42 }, { label: "DevOps", value: 55 },
+    { label: "Architecture", value: 65 }, { label: "UI/UX", value: 60 },
+  ]);
+  const [commits, setCommits] = useState<GitHubCommit[]>([
+    { repo: "shopflow", message: "feat: add stripe webhook handler", date: "2 hours ago" },
+    { repo: "stayfinder", message: "fix: resolve booking overlap bug", date: "1 day ago" },
+    { repo: "portfolio", message: "chore: add terminal easter egg", date: "2 days ago" },
+  ]);
+  const [learningTopics, setLearningTopics] = useState<LearningTopic[]>([
+    { id: "rn", name: "React Native", icon: "📱", status: "active", progress: 38, desc: "Cross-platform mobile apps", why: "Full-stack means mobile." },
+    { id: "sysdesign", name: "System Design", icon: "🏗️", status: "active", progress: 62, desc: "Scalable architectures", why: "The gap between junior and senior." },
+    { id: "docker", name: "Docker + DevOps", icon: "🐳", status: "done", progress: 100, desc: "Containerization & CI/CD", why: "Solved works-on-my-machine permanently." },
+  ]);
+  const [terminalCmds, setTerminalCmds] = useState<Record<string, string>>({
+    whoami: "Abel — Full-Stack Developer based in Cairo, Egypt.",
+    skills: "Next.js · React · TypeScript · Node.js · PostgreSQL · MongoDB",
+    contact: "abel@example.com | github.com/abel | linkedin.com/in/abel",
+    hire: "Open to full-time roles and freelance projects.",
+  });
+  const [ghStats, setGhStats] = useState({ totalContribs: 847, streak: 14, repos: 18 });
   const [saved, setSaved] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
+  const [pwMsg, setPwMsg] = useState("");
+  const [newCert, setNewCert] = useState<Cert>({ title: "", issuer: "", date: "", credential_url: "", skills: "" });
+  const [editingCert, setEditingCert] = useState<number | null>(null);
 
-  useEffect(() => { setData(getSiteData()); setMounted(true); }, []);
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/auth/me").then(r => { if (!r.ok) router.replace("/login"); return r.json(); }),
+      fetch("/api/site-data").then(r => r.json()),
+      fetch("/api/certificates").then(r => r.json()),
+    ]).then(([, sd, cl]) => {
+      if (sd) setData({ ...DEFAULT_DATA, ...sd, hero: { ...DEFAULT_DATA.hero, ...sd.hero }, bio: { ...DEFAULT_DATA.bio, ...sd.bio }, theme: { ...DEFAULT_DATA.theme, ...sd.theme } });
+      if (Array.isArray(cl)) setCerts(cl.map((c: any) => ({ ...c, skills: Array.isArray(c.skills) ? c.skills.join(", ") : c.skills })));
+      setLoading(false);
+    }).catch(() => router.replace("/login"));
+  }, []);
 
-  const save = () => {
-    setSiteData(data);
-    setSaved(true);
+  const save = async () => {
+    setSaving(true);
+    await fetch("/api/site-data", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+    setSaved(true); setSaving(false);
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const updateHero = (k: string, v: string) => setData(d => ({ ...d, hero: { ...d.hero, [k]: v } }));
-  const updateBio = (k: string, v: string) => setData(d => ({ ...d, bio: { ...d.bio, [k]: v } }));
-  const updateTheme = (k: string, v: string) => setData(d => ({ ...d, theme: { ...d.theme, [k]: v } }));
-
-  const updateProject = (id: string, k: keyof Project, v: string | boolean | string[]) =>
-    setData(d => ({ ...d, projects: d.projects.map(p => p.id === id ? { ...p, [k]: v } : p) }));
-
-  const addProject = () => {
-    const newP: Project = {
-      id: Date.now().toString(), title: "New Project", description: "Project description...",
-      tech: ["Next.js"], liveUrl: "#", githubUrl: "#", image: "💻", featured: false,
-    };
-    setData(d => ({ ...d, projects: [...d.projects, newP] }));
+  const logout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
   };
 
+  const updateH = (k: string, v: string) => setData(d => ({ ...d, hero: { ...d.hero, [k]: v } }));
+  const updateB = (k: string, v: string) => setData(d => ({ ...d, bio: { ...d.bio, [k]: v } }));
+  const updateT = (k: string, v: string) => setData(d => ({ ...d, theme: { ...d.theme, [k]: v } }));
+  const updateP = (id: string, k: keyof Project, v: any) => setData(d => ({ ...d, projects: d.projects.map(p => p.id === id ? { ...p, [k]: v } : p) }));
+
+  const addProject = () => setData(d => ({ ...d, projects: [...d.projects, { id: Date.now().toString(), title: "New Project", description: "", tech: [], liveUrl: "#", githubUrl: "#", image: "💻", featured: false }] }));
   const removeProject = (id: string) => setData(d => ({ ...d, projects: d.projects.filter(p => p.id !== id) }));
 
-  const tabs: { id: Tab; icon: React.ReactNode; label: string }[] = [
-    { id: "hero", icon: <Layout size={16} />, label: "Hero" },
-    { id: "bio", icon: <User size={16} />, label: "About & Bio" },
-    { id: "theme", icon: <Palette size={16} />, label: "Theme" },
-    { id: "projects", icon: <Folder size={16} />, label: "Projects" },
-  ];
-
-  const inputStyle: React.CSSProperties = {
-    width: "100%", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8,
-    padding: "10px 14px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: 14,
-    outline: "none", transition: "border-color 0.2s",
+  const saveCert = async (cert: Cert) => {
+    const method = cert.id ? "PUT" : "POST";
+    await fetch("/api/certificates", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(cert) });
+    const updated = await fetch("/api/certificates").then(r => r.json());
+    setCerts(updated.map((c: any) => ({ ...c, skills: Array.isArray(c.skills) ? c.skills.join(", ") : c.skills })));
+    setEditingCert(null);
+    setNewCert({ title: "", issuer: "", date: "", credential_url: "", skills: "" });
   };
-  const labelStyle: React.CSSProperties = {
-    display: "block", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11,
-    letterSpacing: "0.1em", color: "var(--muted)", marginBottom: 6,
-  };
-  const fieldStyle: React.CSSProperties = { marginBottom: 20 };
 
-  if (!mounted) return null;
+  const deleteCert = async (id: number) => {
+    await fetch("/api/certificates", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    setCerts(c => c.filter(x => x.id !== id));
+  };
+
+  const changePassword = async () => {
+    if (pwForm.next !== pwForm.confirm) { setPwMsg("New passwords don't match"); return; }
+    const r = await fetch("/api/auth/change-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ currentPassword: pwForm.current, newPassword: pwForm.next }) });
+    const d = await r.json();
+    setPwMsg(d.ok ? "Password changed!" : d.error || "Error");
+    if (d.ok) setPwForm({ current: "", next: "", confirm: "" });
+  };
+
+  if (loading) return (
+    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: 32, height: 32, border: "2px solid var(--accent)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+
+  const CertForm = ({ cert, onSave, onCancel }: { cert: Cert; onSave: (c: Cert) => void; onCancel: () => void }) => {
+    const [local, setLocal] = useState(cert);
+    const u = (k: keyof Cert, v: string) => setLocal(c => ({ ...c, [k]: v }));
+    return (
+      <div style={{ background: "var(--bg)", border: "1px solid var(--accent)", borderRadius: 10, padding: 20, marginTop: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+          <div><label style={lbl}>TITLE</label><input style={inp} value={local.title} onChange={e => u("title", e.target.value)} /></div>
+          <div><label style={lbl}>ISSUER (Coursera, Udacity…)</label><input style={inp} value={local.issuer} onChange={e => u("issuer", e.target.value)} /></div>
+          <div><label style={lbl}>DATE (YYYY-MM)</label><input style={inp} placeholder="2024-03" value={local.date} onChange={e => u("date", e.target.value)} /></div>
+          <div><label style={lbl}>CREDENTIAL URL</label><input style={inp} value={local.credential_url} onChange={e => u("credential_url", e.target.value)} /></div>
+        </div>
+        <div style={{ marginBottom: 12 }}><label style={lbl}>SKILLS (comma separated)</label><input style={inp} value={local.skills} onChange={e => u("skills", e.target.value)} /></div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => onSave(local)} style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-2))", color: "#000", border: "none", borderRadius: 8, padding: "9px 18px", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Save Certificate</button>
+          <button onClick={onCancel} style={{ background: "var(--bg-card)", color: "var(--muted)", border: "1px solid var(--border)", borderRadius: 8, padding: "9px 18px", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column" }}>
       {/* Header */}
-      <header style={{ borderBottom: "1px solid var(--border)", padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--bg-card)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <a href="/" style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--muted)", textDecoration: "none", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, transition: "color 0.2s" }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "var(--accent)"}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "var(--muted)"}>
-            <ChevronLeft size={16} /> Back to site
-          </a>
-          <span style={{ color: "var(--border)" }}>|</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Settings size={18} style={{ color: "var(--accent)" }} />
-            <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16 }}>Portfolio Dashboard</span>
-          </div>
+      <header style={{ borderBottom: "1px solid var(--border)", padding: "0 16px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--bg-card)", position: "sticky", top: 0, zIndex: 50 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button onClick={() => setSidebarOpen(o => !o)} style={{ display: "none", background: "none", border: "none", color: "var(--muted)", cursor: "pointer", padding: 4, className: "mob-menu" } as any}>
+            <Menu size={20} />
+          </button>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: 20, background: "linear-gradient(135deg, var(--accent), var(--accent-2))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Dashboard</div>
         </div>
-        <div style={{ display: "flex", gap: 12 }}>
-          <a href="/" target="_blank" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--bg)", border: "1px solid var(--border)", color: "var(--muted)", padding: "8px 16px", borderRadius: 8, textDecoration: "none", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13 }}>
-            <Eye size={14} /> Preview
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <a href="/" target="_blank" style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--bg)", border: "1px solid var(--border)", color: "var(--muted)", padding: "7px 14px", borderRadius: 8, textDecoration: "none", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12 }}>
+            <Eye size={13} /> <span style={{ display: "none" as any }} className="hide-mobile">Preview</span>
           </a>
-          <button onClick={save} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: saved ? "var(--accent)" : "linear-gradient(135deg, var(--accent), var(--accent-2))", color: "#000", border: "none", padding: "8px 20px", borderRadius: 8, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all 0.3s" }}>
-            <Save size={14} /> {saved ? "Saved!" : "Save Changes"}
+          <button onClick={save} disabled={saving} style={{ display: "flex", alignItems: "center", gap: 6, background: saved ? "var(--accent)" : "linear-gradient(135deg, var(--accent), var(--accent-2))", color: "#000", border: "none", padding: "7px 16px", borderRadius: 8, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+            <Save size={13} /> {saved ? "Saved!" : saving ? "Saving…" : "Save"}
+          </button>
+          <button onClick={logout} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", color: "var(--muted)", border: "1px solid var(--border)", padding: "7px 14px", borderRadius: 8, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+            <LogOut size={13} />
           </button>
         </div>
       </header>
 
-      <div style={{ display: "flex", flex: 1 }}>
+      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
         {/* Sidebar */}
-        <aside style={{ width: 220, borderRight: "1px solid var(--border)", padding: 24, background: "var(--bg-card)" }}>
-          <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, letterSpacing: "0.15em", color: "var(--muted)", marginBottom: 16 }}>SECTIONS</p>
-          {tabs.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", borderRadius: 8, border: "none", background: tab === t.id ? "rgba(110,231,183,0.1)" : "transparent", color: tab === t.id ? "var(--accent)" : "var(--muted)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, cursor: "pointer", marginBottom: 4, transition: "all 0.2s", textAlign: "left", borderLeft: tab === t.id ? "2px solid var(--accent)" : "2px solid transparent" }}>
+        <aside style={{ width: 210, borderRight: "1px solid var(--border)", padding: "20px 12px", background: "var(--bg-card)", flexShrink: 0, overflowY: "auto" }}>
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => { setTab(t.id); setSidebarOpen(false); }}
+              style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "9px 12px", borderRadius: 8, border: "none", background: tab === t.id ? "rgba(110,231,183,0.1)" : "transparent", color: tab === t.id ? "var(--accent)" : "var(--muted)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12, cursor: "pointer", marginBottom: 2, borderLeft: tab === t.id ? "2px solid var(--accent)" : "2px solid transparent", transition: "all 0.15s" }}>
               {t.icon} {t.label}
             </button>
           ))}
         </aside>
 
-        {/* Content */}
-        <main style={{ flex: 1, padding: 40, overflowY: "auto" }}>
-          <div style={{ maxWidth: 680 }}>
+        {/* Main */}
+        <main style={{ flex: 1, padding: "28px 32px", overflowY: "auto" }}>
+          <div style={{ maxWidth: 720 }}>
 
-            {/* HERO TAB */}
-            {tab === "hero" && (
-              <div>
-                <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 28, marginBottom: 8 }}>Hero Section</h2>
-                <p style={{ color: "var(--muted)", marginBottom: 32, fontSize: 14 }}>The first thing visitors see — make it count.</p>
-
-                <div className="card" style={{ padding: 28 }}>
-                  <div style={fieldStyle}>
-                    <label style={labelStyle}>YOUR NAME / DISPLAY TITLE</label>
-                    <input style={inputStyle} value={data.hero.title} onChange={e => updateHero("title", e.target.value)} placeholder="Abel" />
-                  </div>
-                  <div style={fieldStyle}>
-                    <label style={labelStyle}>ROLE / SUBTITLE</label>
-                    <input style={inputStyle} value={data.hero.subtitle} onChange={e => updateHero("subtitle", e.target.value)} placeholder="Full-Stack Developer" />
-                  </div>
-                  <div style={fieldStyle}>
-                    <label style={labelStyle}>TAGLINE</label>
-                    <textarea style={{ ...inputStyle, minHeight: 80, resize: "vertical" }} value={data.hero.tagline} onChange={e => updateHero("tagline", e.target.value)} />
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                    <div style={fieldStyle}>
-                      <label style={labelStyle}>CTA BUTTON LABEL</label>
-                      <input style={inputStyle} value={data.hero.ctaLabel} onChange={e => updateHero("ctaLabel", e.target.value)} />
-                    </div>
-                    <div style={fieldStyle}>
-                      <label style={labelStyle}>CTA LINK</label>
-                      <input style={inputStyle} value={data.hero.ctaUrl} onChange={e => updateHero("ctaUrl", e.target.value)} />
-                    </div>
-                  </div>
+            {/* HERO */}
+            {tab === "hero" && <>
+              {sectionTitle("Hero Section", "The first thing visitors see.")}
+              <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 24 }}>
+                <div style={field}><label style={lbl}>NAME / DISPLAY TITLE</label><input style={inp} value={data.hero.title} onChange={e => updateH("title", e.target.value)} /></div>
+                <div style={field}><label style={lbl}>SUBTITLE / ROLE</label><input style={inp} value={data.hero.subtitle} onChange={e => updateH("subtitle", e.target.value)} /></div>
+                <div style={field}><label style={lbl}>TAGLINE</label><textarea style={ta} value={data.hero.tagline} onChange={e => updateH("tagline", e.target.value)} /></div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div style={field}><label style={lbl}>CTA BUTTON TEXT</label><input style={inp} value={data.hero.ctaLabel} onChange={e => updateH("ctaLabel", e.target.value)} /></div>
+                  <div style={field}><label style={lbl}>CTA LINK</label><input style={inp} value={data.hero.ctaUrl} onChange={e => updateH("ctaUrl", e.target.value)} /></div>
                 </div>
               </div>
-            )}
+            </>}
 
-            {/* BIO TAB */}
-            {tab === "bio" && (
-              <div>
-                <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 28, marginBottom: 8 }}>About & Bio</h2>
-                <p style={{ color: "var(--muted)", marginBottom: 32, fontSize: 14 }}>Personal info and social links.</p>
-
-                <div className="card" style={{ padding: 28, marginBottom: 20 }}>
-                  <div style={fieldStyle}>
-                    <label style={labelStyle}>FULL NAME</label>
-                    <input style={inputStyle} value={data.bio.name} onChange={e => updateBio("name", e.target.value)} />
-                  </div>
-                  <div style={fieldStyle}>
-                    <label style={labelStyle}>ROLE</label>
-                    <input style={inputStyle} value={data.bio.role} onChange={e => updateBio("role", e.target.value)} />
-                  </div>
-                  <div style={fieldStyle}>
-                    <label style={labelStyle}>BIO</label>
-                    <textarea style={{ ...inputStyle, minHeight: 120, resize: "vertical" }} value={data.bio.about} onChange={e => updateBio("about", e.target.value)} />
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                    <div style={fieldStyle}>
-                      <label style={labelStyle}>LOCATION</label>
-                      <input style={inputStyle} value={data.bio.location} onChange={e => updateBio("location", e.target.value)} />
-                    </div>
-                    <div style={fieldStyle}>
-                      <label style={labelStyle}>EMAIL</label>
-                      <input style={inputStyle} type="email" value={data.bio.email} onChange={e => updateBio("email", e.target.value)} />
-                    </div>
-                  </div>
+            {/* BIO */}
+            {tab === "bio" && <>
+              {sectionTitle("About & Bio", "Your personal info, bio text, and social links.")}
+              <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 24, marginBottom: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div style={field}><label style={lbl}>FULL NAME</label><input style={inp} value={data.bio.name} onChange={e => updateB("name", e.target.value)} /></div>
+                  <div style={field}><label style={lbl}>ROLE</label><input style={inp} value={data.bio.role} onChange={e => updateB("role", e.target.value)} /></div>
                 </div>
-
-                <div className="card" style={{ padding: 28 }}>
-                  <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, letterSpacing: "0.1em", color: "var(--muted)", marginBottom: 20 }}>SOCIAL LINKS</p>
-                  {[{ key: "github", label: "GITHUB URL" }, { key: "linkedin", label: "LINKEDIN URL" }, { key: "twitter", label: "TWITTER URL" }].map(({ key, label }) => (
-                    <div key={key} style={fieldStyle}>
-                      <label style={labelStyle}>{label}</label>
-                      <input style={inputStyle} value={(data.bio as Record<string, string>)[key]} onChange={e => updateBio(key, e.target.value)} />
-                    </div>
-                  ))}
+                <div style={field}><label style={lbl}>BIO / ABOUT</label><textarea style={{ ...ta, minHeight: 120 }} value={data.bio.about} onChange={e => updateB("about", e.target.value)} /></div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div style={field}><label style={lbl}>LOCATION</label><input style={inp} value={data.bio.location} onChange={e => updateB("location", e.target.value)} /></div>
+                  <div style={field}><label style={lbl}>EMAIL</label><input style={inp} value={data.bio.email} onChange={e => updateB("email", e.target.value)} /></div>
+                  <div style={field}><label style={lbl}>GITHUB URL</label><input style={inp} value={data.bio.github} onChange={e => updateB("github", e.target.value)} /></div>
+                  <div style={field}><label style={lbl}>LINKEDIN URL</label><input style={inp} value={data.bio.linkedin} onChange={e => updateB("linkedin", e.target.value)} /></div>
+                  <div style={field}><label style={lbl}>TWITTER / X URL</label><input style={inp} value={data.bio.twitter} onChange={e => updateB("twitter", e.target.value)} /></div>
                 </div>
               </div>
-            )}
+            </>}
 
-            {/* THEME TAB */}
-            {tab === "theme" && (
-              <div>
-                <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 28, marginBottom: 8 }}>Theme</h2>
-                <p style={{ color: "var(--muted)", marginBottom: 32, fontSize: 14 }}>Customize the color palette of your portfolio.</p>
-
-                <div className="card" style={{ padding: 28 }}>
-                  {[
-                    { key: "accent", label: "PRIMARY ACCENT COLOR", desc: "Used for highlights, tags, and CTAs" },
-                    { key: "accent2", label: "SECONDARY ACCENT COLOR", desc: "Used for gradients and shimmer effects" },
-                    { key: "bg", label: "BACKGROUND COLOR", desc: "Main page background" },
-                  ].map(({ key, label, desc }) => (
-                    <div key={key} style={{ ...fieldStyle, display: "flex", alignItems: "center", gap: 20 }}>
-                      <input type="color" value={(data.theme as Record<string, string>)[key]} onChange={e => updateTheme(key, e.target.value)}
-                        style={{ width: 56, height: 56, borderRadius: 8, border: "1px solid var(--border)", background: "none", cursor: "pointer", padding: 4 }} />
-                      <div>
-                        <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{label}</div>
-                        <div style={{ color: "var(--muted)", fontSize: 12 }}>{desc}</div>
-                        <div style={{ fontFamily: "monospace", fontSize: 12, color: "var(--accent)", marginTop: 4 }}>{(data.theme as Record<string, string>)[key]}</div>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Live preview */}
-                  <div style={{ marginTop: 20, padding: 20, background: data.theme.bg, borderRadius: 8, border: "1px solid var(--border)" }}>
-                    <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, letterSpacing: "0.1em", color: "var(--muted)", marginBottom: 12 }}>LIVE PREVIEW</p>
-                    <div style={{ background: `linear-gradient(135deg, ${data.theme.accent}, ${data.theme.accent2})`, padding: "12px 20px", borderRadius: 8, display: "inline-block", color: "#000", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14 }}>
-                      Primary Button
-                    </div>
-                    <span style={{ marginLeft: 12, color: data.theme.accent, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14 }}>Accent Text</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* PROJECTS TAB */}
-            {tab === "projects" && (
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
-                  <div>
-                    <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 28, marginBottom: 8 }}>Projects</h2>
-                    <p style={{ color: "var(--muted)", fontSize: 14 }}>Add, edit, and reorder your showcase projects.</p>
-                  </div>
-                  <button onClick={addProject} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(110,231,183,0.1)", border: "1px solid var(--accent)", color: "var(--accent)", padding: "10px 16px", borderRadius: 8, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                    <Plus size={14} /> Add Project
-                  </button>
-                </div>
-
-                {data.projects.map((p, idx) => (
-                  <div key={p.id} className="card" style={{ padding: 24, marginBottom: 16 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-                      <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12, letterSpacing: "0.1em", color: "var(--accent)" }}>PROJECT {idx + 1}</span>
-                      <button onClick={() => removeProject(p.id)} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", padding: "6px 10px", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontFamily: "var(--font-display)", fontWeight: 700 }}>
-                        <Trash2 size={12} /> Remove
-                      </button>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "80px 1fr", gap: 16, marginBottom: 16 }}>
-                      <div>
-                        <label style={labelStyle}>ICON</label>
-                        <input style={{ ...inputStyle, textAlign: "center", fontSize: 24 }} value={p.image} onChange={e => updateProject(p.id, "image", e.target.value)} />
-                      </div>
-                      <div>
-                        <label style={labelStyle}>TITLE</label>
-                        <input style={inputStyle} value={p.title} onChange={e => updateProject(p.id, "title", e.target.value)} />
-                      </div>
-                    </div>
-                    <div style={fieldStyle}>
-                      <label style={labelStyle}>DESCRIPTION</label>
-                      <textarea style={{ ...inputStyle, minHeight: 80, resize: "vertical" }} value={p.description} onChange={e => updateProject(p.id, "description", e.target.value)} />
-                    </div>
-                    <div style={fieldStyle}>
-                      <label style={labelStyle}>TECH STACK (comma separated)</label>
-                      <input style={inputStyle} value={p.tech.join(", ")} onChange={e => updateProject(p.id, "tech", e.target.value.split(",").map(t => t.trim()).filter(Boolean))} />
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                      <div style={fieldStyle}>
-                        <label style={labelStyle}>LIVE URL</label>
-                        <input style={inputStyle} value={p.liveUrl} onChange={e => updateProject(p.id, "liveUrl", e.target.value)} />
-                      </div>
-                      <div style={fieldStyle}>
-                        <label style={labelStyle}>GITHUB URL</label>
-                        <input style={inputStyle} value={p.githubUrl} onChange={e => updateProject(p.id, "githubUrl", e.target.value)} />
-                      </div>
+            {/* THEME */}
+            {tab === "theme" && <>
+              {sectionTitle("Theme", "Colors that define the entire site's look.")}
+              <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 24 }}>
+                {[{ k: "accent", l: "PRIMARY ACCENT", d: "Highlights, CTAs, tags" }, { k: "accent2", l: "SECONDARY ACCENT", d: "Gradients, shimmer text" }, { k: "bg", l: "BACKGROUND", d: "Main page background" }].map(({ k, l, d }) => (
+                  <div key={k} style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
+                    <input type="color" value={(data.theme as any)[k]} onChange={e => updateT(k, e.target.value)} style={{ width: 52, height: 52, borderRadius: 8, border: "1px solid var(--border)", background: "none", cursor: "pointer", padding: 3, flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13 }}>{l}</div>
+                      <div style={{ color: "var(--muted)", fontSize: 12 }}>{d}</div>
+                      <code style={{ fontSize: 11, color: "var(--accent)" }}>{(data.theme as any)[k]}</code>
                     </div>
                   </div>
                 ))}
+                <div style={{ marginTop: 8, padding: 16, background: data.theme.bg, borderRadius: 8, border: "1px solid var(--border)" }}>
+                  <div style={{ fontSize: 11, color: "var(--muted)", fontFamily: "var(--font-display)", fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>PREVIEW</div>
+                  <span style={{ background: `linear-gradient(135deg, ${data.theme.accent}, ${data.theme.accent2})`, color: "#000", padding: "8px 16px", borderRadius: 8, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13 }}>Button</span>
+                  <span style={{ marginLeft: 12, color: data.theme.accent, fontFamily: "var(--font-display)", fontWeight: 700 }}>Accent text</span>
+                </div>
               </div>
-            )}
+            </>}
+
+            {/* PROJECTS */}
+            {tab === "projects" && <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <div><h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, marginBottom: 4 }}>Projects</h2><p style={{ color: "var(--muted)", fontSize: 13 }}>Add and manage your showcase work.</p></div>
+                <button onClick={addProject} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(110,231,183,0.1)", border: "1px solid var(--accent)", color: "var(--accent)", padding: "9px 14px", borderRadius: 8, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12, cursor: "pointer" }}><Plus size={13} /> Add</button>
+              </div>
+              {data.projects.map((p, i) => (
+                <div key={p.id} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20, marginBottom: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                    <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em" }}>PROJECT {i + 1}</span>
+                    <button onClick={() => removeProject(p.id)} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", padding: "6px 10px", borderRadius: 6, cursor: "pointer", fontSize: 12, fontFamily: "var(--font-display)", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}><Trash2 size={11} /> Remove</button>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "70px 1fr", gap: 12, marginBottom: 12 }}>
+                    <div><label style={lbl}>ICON</label><input style={{ ...inp, textAlign: "center", fontSize: 22 }} value={p.image} onChange={e => updateP(p.id, "image", e.target.value)} /></div>
+                    <div><label style={lbl}>TITLE</label><input style={inp} value={p.title} onChange={e => updateP(p.id, "title", e.target.value)} /></div>
+                  </div>
+                  <div style={field}><label style={lbl}>DESCRIPTION</label><textarea style={ta} value={p.description} onChange={e => updateP(p.id, "description", e.target.value)} /></div>
+                  <div style={field}><label style={lbl}>TECH STACK (comma separated)</label><input style={inp} value={p.tech.join(", ")} onChange={e => updateP(p.id, "tech", e.target.value.split(",").map(t => t.trim()).filter(Boolean))} /></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div style={field}><label style={lbl}>LIVE URL</label><input style={inp} value={p.liveUrl} onChange={e => updateP(p.id, "liveUrl", e.target.value)} /></div>
+                    <div style={field}><label style={lbl}>GITHUB URL</label><input style={inp} value={p.githubUrl} onChange={e => updateP(p.id, "githubUrl", e.target.value)} /></div>
+                  </div>
+                </div>
+              ))}
+            </>}
+
+            {/* CERTIFICATES */}
+            {tab === "certificates" && <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <div><h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, marginBottom: 4 }}>Certificates</h2><p style={{ color: "var(--muted)", fontSize: 13 }}>Courses from Coursera, Udacity, Udemy, etc.</p></div>
+                {editingCert !== -1 && <button onClick={() => setEditingCert(-1)} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(110,231,183,0.1)", border: "1px solid var(--accent)", color: "var(--accent)", padding: "9px 14px", borderRadius: 8, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12, cursor: "pointer" }}><Plus size={13} /> Add New</button>}
+              </div>
+              {editingCert === -1 && <CertForm cert={newCert} onSave={saveCert} onCancel={() => setEditingCert(null)} />}
+              {certs.map((c, i) => (
+                <div key={c.id ?? i}>
+                  <div style={{ background: "var(--bg-card)", border: `1px solid ${editingCert === i ? "var(--accent)" : "var(--border)"}`, borderRadius: 12, padding: "16px 20px", marginBottom: editingCert === i ? 0 : 10, display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14 }}>{c.title}</div>
+                      <div style={{ color: "var(--muted)", fontSize: 12 }}>{c.issuer} · {c.date}</div>
+                    </div>
+                    <button onClick={() => setEditingCert(editingCert === i ? null : i)} style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--muted)", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11 }}>Edit</button>
+                    <button onClick={() => c.id && deleteCert(c.id)} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}><Trash2 size={11} /></button>
+                  </div>
+                  {editingCert === i && <CertForm cert={c} onSave={saveCert} onCancel={() => setEditingCert(null)} />}
+                  {editingCert === i && <div style={{ marginBottom: 10 }} />}
+                </div>
+              ))}
+              {certs.length === 0 && editingCert !== -1 && <div style={{ textAlign: "center", color: "var(--muted)", padding: 40, border: "1px dashed var(--border)", borderRadius: 12 }}>No certificates yet — click "Add New" to get started.</div>}
+            </>}
+
+            {/* SKILLS RADAR */}
+            {tab === "skills" && <>
+              {sectionTitle("Skill Radar", "Adjust your skill levels shown in the radar chart.")}
+              <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 24 }}>
+                {skills.map((s, i) => (
+                  <div key={i} style={{ marginBottom: 20 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                      <input style={{ ...inp, width: 160, padding: "6px 10px", fontSize: 13 }} value={s.label} onChange={e => setSkills(sk => sk.map((x, j) => j === i ? { ...x, label: e.target.value } : x))} />
+                      <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, color: "var(--accent)", fontSize: 18 }}>{s.value}%</span>
+                    </div>
+                    <input type="range" min={0} max={100} value={s.value} onChange={e => setSkills(sk => sk.map((x, j) => j === i ? { ...x, value: Number(e.target.value) } : x))} style={{ width: "100%", accentColor: "var(--accent)" }} />
+                  </div>
+                ))}
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button onClick={() => setSkills(s => [...s, { label: "New Skill", value: 50 }])} style={{ background: "rgba(110,231,183,0.1)", border: "1px solid var(--accent)", color: "var(--accent)", padding: "8px 14px", borderRadius: 8, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Plus size={12} /> Add Skill</button>
+                  <button onClick={() => setSkills(s => s.slice(0, -1))} style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", padding: "8px 14px", borderRadius: 8, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Remove Last</button>
+                </div>
+                <p style={{ color: "var(--muted)", fontSize: 12, marginTop: 12 }}>Note: Skill data is saved with site data. Hit "Save" in the header.</p>
+              </div>
+            </>}
+
+            {/* GITHUB ACTIVITY */}
+            {tab === "github" && <>
+              {sectionTitle("GitHub Activity", "Stats shown in the GitHub Activity section.")}
+              <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 24, marginBottom: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
+                  {[{ k: "totalContribs", l: "TOTAL CONTRIBUTIONS" }, { k: "streak", l: "CURRENT STREAK (days)" }, { k: "repos", l: "PUBLIC REPOS" }].map(({ k, l }) => (
+                    <div key={k}><label style={lbl}>{l}</label><input type="number" style={inp} value={(ghStats as any)[k]} onChange={e => setGhStats(g => ({ ...g, [k]: Number(e.target.value) }))} /></div>
+                  ))}
+                </div>
+                <div>
+                  <label style={{ ...lbl, marginBottom: 12 }}>RECENT COMMITS</label>
+                  {commits.map((c, i) => (
+                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 8, marginBottom: 8, alignItems: "center" }}>
+                      <input style={inp} placeholder="repo" value={c.repo} onChange={e => setCommits(cs => cs.map((x, j) => j === i ? { ...x, repo: e.target.value } : x))} />
+                      <input style={inp} placeholder="commit message" value={c.message} onChange={e => setCommits(cs => cs.map((x, j) => j === i ? { ...x, message: e.target.value } : x))} />
+                      <input style={inp} placeholder="2 hours ago" value={c.date} onChange={e => setCommits(cs => cs.map((x, j) => j === i ? { ...x, date: e.target.value } : x))} />
+                      <button onClick={() => setCommits(cs => cs.filter((_, j) => j !== i))} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", padding: "8px 10px", borderRadius: 6, cursor: "pointer", fontSize: 14 }}>×</button>
+                    </div>
+                  ))}
+                  <button onClick={() => setCommits(c => [...c, { repo: "", message: "", date: "" }])} style={{ background: "rgba(110,231,183,0.1)", border: "1px solid var(--accent)", color: "var(--accent)", padding: "8px 14px", borderRadius: 8, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}><Plus size={12} /> Add Commit</button>
+                </div>
+              </div>
+            </>}
+
+            {/* TERMINAL */}
+            {tab === "terminal" && <>
+              {sectionTitle("Terminal Commands", "Edit what each command returns in the interactive terminal.")}
+              <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 24 }}>
+                {Object.entries(terminalCmds).map(([cmd, val]) => (
+                  <div key={cmd} style={field}>
+                    <label style={lbl}>$ {cmd}</label>
+                    <textarea style={ta} value={val} onChange={e => setTerminalCmds(t => ({ ...t, [cmd]: e.target.value }))} />
+                  </div>
+                ))}
+                <p style={{ color: "var(--muted)", fontSize: 12 }}>Terminal command content is saved with site data.</p>
+              </div>
+            </>}
+
+            {/* LEARNING */}
+            {tab === "learning" && <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <div><h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, marginBottom: 4 }}>Learning</h2><p style={{ color: "var(--muted)", fontSize: 13 }}>Topics shown in the Currently Learning section.</p></div>
+                <button onClick={() => setLearningTopics(t => [...t, { id: Date.now().toString(), name: "New Topic", icon: "📖", status: "planned", progress: 0, desc: "", why: "" }])} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(110,231,183,0.1)", border: "1px solid var(--accent)", color: "var(--accent)", padding: "9px 14px", borderRadius: 8, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12, cursor: "pointer" }}><Plus size={13} /> Add Topic</button>
+              </div>
+              {learningTopics.map((t, i) => (
+                <div key={t.id} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20, marginBottom: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+                    <button onClick={() => setLearningTopics(lt => lt.filter((_, j) => j !== i))} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", padding: "5px 10px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontFamily: "var(--font-display)", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}><Trash2 size={11} /> Remove</button>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "60px 1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+                    <div><label style={lbl}>ICON</label><input style={{ ...inp, textAlign: "center", fontSize: 20 }} value={t.icon} onChange={e => setLearningTopics(lt => lt.map((x, j) => j === i ? { ...x, icon: e.target.value } : x))} /></div>
+                    <div><label style={lbl}>NAME</label><input style={inp} value={t.name} onChange={e => setLearningTopics(lt => lt.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} /></div>
+                    <div><label style={lbl}>STATUS</label>
+                      <select style={inp} value={t.status} onChange={e => setLearningTopics(lt => lt.map((x, j) => j === i ? { ...x, status: e.target.value } : x))}>
+                        <option value="active">Active</option><option value="done">Done</option><option value="planned">Planned</option>
+                      </select>
+                    </div>
+                    <div><label style={lbl}>PROGRESS ({t.progress}%)</label><input type="range" min={0} max={100} value={t.progress} onChange={e => setLearningTopics(lt => lt.map((x, j) => j === i ? { ...x, progress: Number(e.target.value) } : x))} style={{ width: "100%", marginTop: 10, accentColor: "var(--accent)" }} /></div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div><label style={lbl}>DESCRIPTION</label><textarea style={ta} value={t.desc} onChange={e => setLearningTopics(lt => lt.map((x, j) => j === i ? { ...x, desc: e.target.value } : x))} /></div>
+                    <div><label style={lbl}>WHY I'M LEARNING THIS</label><textarea style={ta} value={t.why} onChange={e => setLearningTopics(lt => lt.map((x, j) => j === i ? { ...x, why: e.target.value } : x))} /></div>
+                  </div>
+                </div>
+              ))}
+            </>}
+
+            {/* SETTINGS */}
+            {tab === "settings" && <>
+              {sectionTitle("Settings", "Account and security.")}
+              <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 24 }}>
+                <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, letterSpacing: "0.1em", color: "var(--muted)", marginBottom: 16 }}>CHANGE PASSWORD</div>
+                <div style={field}><label style={lbl}>CURRENT PASSWORD</label><input type="password" style={inp} value={pwForm.current} onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))} /></div>
+                <div style={field}><label style={lbl}>NEW PASSWORD</label><input type="password" style={inp} value={pwForm.next} onChange={e => setPwForm(f => ({ ...f, next: e.target.value }))} /></div>
+                <div style={field}><label style={lbl}>CONFIRM NEW PASSWORD</label><input type="password" style={inp} value={pwForm.confirm} onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))} /></div>
+                {pwMsg && <p style={{ color: pwMsg.includes("!") ? "var(--accent)" : "#f87171", fontSize: 13, marginBottom: 12 }}>{pwMsg}</p>}
+                <button onClick={changePassword} style={{ display: "flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg, var(--accent), var(--accent-2))", color: "#000", border: "none", padding: "10px 20px", borderRadius: 8, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}><Key size={14} /> Update Password</button>
+              </div>
+            </>}
+
           </div>
         </main>
       </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+          aside { position: fixed; left: ${sidebarOpen ? "0" : "-220px"}; top: 60px; bottom: 0; z-index: 40; transition: left 0.3s; }
+          main { padding: 20px 16px !important; }
+          .mob-menu { display: flex !important; }
+        }
+      `}</style>
     </div>
   );
 }

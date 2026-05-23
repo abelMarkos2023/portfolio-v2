@@ -142,3 +142,60 @@ h1,h2,h3,h4 { font-family: var(--font-display); }
   filter: blur(80px);
   pointer-events: none;
 }
+
+/* ═══════════════════════════════
+   RESPONSIVE — MOBILE FIRST
+═══════════════════════════════ */
+@media (max-width: 768px) {
+  /* Nav */
+  nav .desktop-links { display: none !important; }
+  nav .mobile-menu-btn { display: flex !important; }
+
+  /* Hero */
+  .hero-buttons { flex-direction: column; align-items: center; }
+  .hero-socials { gap: 16px !important; }
+
+  /* Projects grid */
+  .projects-grid { grid-template-columns: 1fr !important; }
+
+  /* About grid */
+  .about-grid { grid-template-columns: 1fr !important; }
+  .skills-grid { grid-template-columns: 1fr 1fr !important; }
+
+  /* Radar */
+  .radar-grid { grid-template-columns: 1fr !important; }
+  .radar-svg { max-width: 300px; margin: 0 auto 24px; }
+
+  /* Case studies */
+  .case-split { grid-template-columns: 1fr !important; }
+  .results-grid { grid-template-columns: 1fr 1fr !important; }
+
+  /* Stack playground */
+  .stack-options { flex-direction: column; }
+  .stack-row { grid-template-columns: 1fr !important; }
+
+  /* Learning */
+  .learning-grid { grid-template-columns: 1fr !important; }
+
+  /* Cert card */
+  .cert-split { grid-template-columns: 1fr !important; }
+  .cert-visual { min-height: 200px !important; padding: 32px 24px !important; }
+
+  /* GitHub */
+  .gh-stats { grid-template-columns: 1fr !important; max-width: 100% !important; }
+  .commit-row { grid-template-columns: 1fr !important; gap: 4px !important; }
+  .commit-row span:not(:first-child) { display: none; }
+
+  /* Terminal */
+  section#terminal { padding: 60px 16px !important; }
+
+  /* General */
+  section { padding-left: 16px !important; padding-right: 16px !important; }
+  .hide-mobile { display: none !important; }
+}
+
+@media (max-width: 480px) {
+  .skills-grid { grid-template-columns: 1fr !important; }
+  .results-grid { grid-template-columns: 1fr !important; }
+  .case-decisions { padding: 12px !important; }
+}

@@ -58,7 +58,7 @@ export default function SkillRadar() {
         <h2 style={{ fontSize: "clamp(32px,5vw,52px)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 8 }}>Radar Chart</h2>
         <p style={{ color: "var(--muted)", fontSize: 15, marginBottom: 40 }}>An honest look at where I'm strong — and where I'm growing.</p>
 
-        <div ref={ref} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }}>
+        <div ref={ref} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }} className="radar-grid">
           {/* SVG Radar */}
           <svg viewBox="0 0 400 400" style={{ width: "100%", maxWidth: 400 }}>
             {/* Grid levels */}

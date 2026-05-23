@@ -90,7 +90,7 @@ export default function Learning() {
         <h2 style={{ fontSize: "clamp(32px,5vw,52px)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 8 }}>Currently Learning</h2>
         <p style={{ color: "var(--muted)", fontSize: 15, marginBottom: 40 }}>I believe the best developers never stop being students.</p>
 
-        <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 24 }} className="learning-grid">
           {/* Topic list */}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {TOPICS.map(t => {

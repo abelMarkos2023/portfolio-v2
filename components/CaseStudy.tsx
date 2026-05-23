@@ -88,7 +88,7 @@ function CaseCard({ c }: { c: CaseStudy }) {
       {/* Expanded content */}
       {open && (
         <div style={{ padding: "0 32px 32px", borderTop: "1px solid var(--border)" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginTop: 28 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginTop: 28 }} className="case-split">
             <div>
               <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, letterSpacing: "0.1em", color: "var(--accent)", marginBottom: 12 }}>THE PROBLEM</h4>
               <p style={{ color: "var(--muted)", lineHeight: 1.7, fontSize: 14 }}>{c.problem}</p>
@@ -118,7 +118,7 @@ function CaseCard({ c }: { c: CaseStudy }) {
           {/* Results */}
           <div style={{ marginTop: 28 }}>
             <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, letterSpacing: "0.1em", color: "var(--accent)", marginBottom: 16 }}>RESULTS</h4>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }} className="results-grid">
               {c.results.map((r, i) => (
                 <div key={i} style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 10, padding: "16px" }}>
                   <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 22, color: "var(--accent)" }}>{r.value}</div>

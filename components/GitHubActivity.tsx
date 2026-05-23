@@ -52,7 +52,7 @@ export default function GitHubActivity() {
         <p style={{ color: "var(--muted)", fontSize: 15, marginBottom: 40 }}>I ship consistently — here's the evidence.</p>
 
         {/* Stats row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32, maxWidth: 480 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32, maxWidth: 480 }} className="gh-stats">
           {[
             { label: "Contributions this year", val: totalContribs },
             { label: "Day streak", val: streak },

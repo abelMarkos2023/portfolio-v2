@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { getSiteData, SiteData, DEFAULT_DATA } from "@/lib/store";
-import { Mail, MapPin, ArrowRight, Globe } from "lucide-react";
+import { Mail, MapPin, ArrowRight, Globe, Menu, X } from "lucide-react";
 import dynamic from "next/dynamic";
 const Terminal = dynamic(() => import("@/components/Terminal"), { ssr: false });
 const GitHubActivity = dynamic(() => import("@/components/GitHubActivity"), { ssr: false });
@@ -9,6 +9,7 @@ const SkillRadar = dynamic(() => import("@/components/SkillRadar"), { ssr: false
 const CaseStudies = dynamic(() => import("@/components/CaseStudy"), { ssr: false });
 const StackPlayground = dynamic(() => import("@/components/StackPlayground"), { ssr: false });
 const Learning = dynamic(() => import("@/components/Learning"), { ssr: false });
+const Certificates = dynamic(() => import("@/components/Certificates"), { ssr: false });
 const Github = ({ size }: { size: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
 );
@@ -23,6 +24,7 @@ export default function Portfolio() {
   const [data, setData] = useState<SiteData>(DEFAULT_DATA);
   const [mounted, setMounted] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     setData(getSiteData());
@@ -62,16 +64,19 @@ export default function Portfolio() {
           <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 20, background: "linear-gradient(135deg, var(--accent), var(--accent-2))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
             {data.bio.name}
           </span>
-          <div style={{ display: "flex", gap: 32 }}>
+          <div className="desktop-links" style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
             {navLinks.map(l => (
               <a key={l.id} href={`#${l.id}`} style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 14, color: activeSection === l.id ? "var(--accent)" : "var(--muted)", textDecoration: "none", transition: "color 0.2s", letterSpacing: "0.05em" }}>
                 {l.label}
               </a>
             ))}
           </div>
-          <a href="/dashboard" style={{ background: "var(--border)", color: "var(--accent)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12, padding: "8px 16px", borderRadius: 6, textDecoration: "none", letterSpacing: "0.05em", border: "1px solid var(--accent)", transition: "background 0.2s" }}>
+          <a href="/login" style={{ background: "var(--border)", color: "var(--accent)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12, padding: "8px 16px", borderRadius: 6, textDecoration: "none", letterSpacing: "0.05em", border: "1px solid var(--accent)", transition: "background 0.2s" }}>
             ADMIN
           </a>
+          <button className="mobile-menu-btn" onClick={() => setMobileNavOpen(o => !o)} style={{ display: "none", background: "none", border: "none", color: "var(--text)", cursor: "pointer", padding: 4 }}>
+            {mobileNavOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
         </div>
       </nav>
 
@@ -126,7 +131,7 @@ export default function Portfolio() {
           <h2 style={{ fontSize: "clamp(36px, 5vw, 56px)", fontWeight: 800, letterSpacing: "-0.02em" }}>Projects</h2>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(480px, 1fr))", gap: 24 }}>
+        <div className="projects-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(480px, 100%), 1fr))", gap: 24 }}>
           {data.projects.map((p, i) => (
             <div key={p.id} className="card" style={{ padding: 32, position: "relative", overflow: "hidden" }}>
               <div style={{ position: "absolute", top: -20, right: -20, fontSize: 120, opacity: 0.04, fontFamily: "var(--font-display)", fontWeight: 900, color: "var(--accent)" }}>
@@ -157,7 +162,7 @@ export default function Portfolio() {
 
       {/* ABOUT */}
       <section id="about" style={{ padding: "100px 24px", background: "var(--bg-2)" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }}>
+        <div className="about-grid" style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }}>
           <div>
             <p style={{ color: "var(--accent)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, letterSpacing: "0.15em", marginBottom: 12 }}>ABOUT ME</p>
             <h2 style={{ fontSize: "clamp(36px, 5vw, 52px)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 24 }}>
@@ -169,7 +174,7 @@ export default function Portfolio() {
               {data.bio.location}
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="skills-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             {[
               { label: "Frontend", items: ["Next.js", "React", "TypeScript", "Tailwind CSS"] },
               { label: "Backend", items: ["Node.js", "Express", "PostgreSQL", "MongoDB"] },
@@ -211,9 +216,22 @@ export default function Portfolio() {
       <GitHubActivity />
       <SkillRadar />
       <CaseStudies />
+      <Certificates />
       <StackPlayground />
       <Learning />
       <Terminal />
+
+      {/* Mobile Nav Overlay */}
+      {mobileNavOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(8,11,18,0.97)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 32 }}>
+          {navLinks.map(l => (
+            <a key={l.id} href={`#${l.id}`} onClick={() => setMobileNavOpen(false)} style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 28, color: activeSection === l.id ? "var(--accent)" : "var(--text)", textDecoration: "none" }}>
+              {l.label}
+            </a>
+          ))}
+          <a href="/login" style={{ marginTop: 16, color: "var(--accent)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, textDecoration: "none", border: "1px solid var(--accent)", padding: "10px 24px", borderRadius: 8 }}>Admin</a>
+        </div>
+      )}
 
       {/* FOOTER */}
       <footer style={{ borderTop: "1px solid var(--border)", padding: "24px", textAlign: "center", color: "var(--muted)", fontSize: 13, fontFamily: "var(--font-display)" }}>
