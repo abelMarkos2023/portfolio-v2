@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState,useEffect } from "react";
 
 type Resource = { title: string; type: string; url: string };
 type Topic = {
@@ -80,8 +80,35 @@ const STATUS_COLOR = {
 
 export default function Learning() {
   const [active, setActive] = useState<string | null>("rn");
+  const [topics, setTopics] = useState<Topic[]>(TOPICS);
 
-  const selected = TOPICS.find(t => t.id === active);
+  useEffect(() => {
+    // Try to get dynamic topics from window object
+    const sd = (window as any).__SITE_DATA__;
+    if (sd && sd.learningTopics) {
+      setTopics(sd.learningTopics.map((t: any) => ({
+        ...t,
+        resources: t.resources || [],
+        tag: t.status === "active" ? "In Progress" : t.status === "done" ? "Completed" : "Up Next"
+      })));
+      if (sd.learningTopics.length > 0) setActive(sd.learningTopics[0].id);
+    } else {
+      fetch("/api/site-data")
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.learningTopics) {
+            setTopics(data.learningTopics.map((t: any) => ({
+              ...t,
+              resources: t.resources || [],
+              tag: t.status === "active" ? "In Progress" : t.status === "done" ? "Completed" : "Up Next"
+            })));
+            if (data.learningTopics.length > 0) setActive(data.learningTopics[0].id);
+          }
+        });
+    }
+  }, []);
+
+  const selected = topics.find(t => t.id === active);
 
   return (
     <section id="learning" style={{ padding: "100px 24px", background: "var(--bg-2)" }}>
@@ -93,8 +120,8 @@ export default function Learning() {
         <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 24 }} className="learning-grid">
           {/* Topic list */}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {TOPICS.map(t => {
-              const sc = STATUS_COLOR[t.status];
+            {topics.map(t => {
+              const sc = STATUS_COLOR[t.status as keyof typeof STATUS_COLOR] || STATUS_COLOR.planned;
               const isActive = active === t.id;
               return (
                 <button key={t.id} onClick={() => setActive(t.id)}
@@ -124,7 +151,7 @@ export default function Learning() {
                   <span style={{ fontSize: 48 }}>{selected.icon}</span>
                   <div>
                     <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, color: "var(--text)", marginBottom: 4 }}>{selected.name}</h3>
-                    <span style={{ background: STATUS_COLOR[selected.status].bg, border: `1px solid ${STATUS_COLOR[selected.status].border}`, color: STATUS_COLOR[selected.status].text, padding: "3px 12px", borderRadius: 100, fontSize: 11, fontFamily: "var(--font-display)", fontWeight: 700, letterSpacing: "0.05em" }}>
+                    <span style={{ background: (STATUS_COLOR[selected.status as keyof typeof STATUS_COLOR] || STATUS_COLOR.planned).bg, border: `1px solid ${(STATUS_COLOR[selected.status as keyof typeof STATUS_COLOR] || STATUS_COLOR.planned).border}`, color: (STATUS_COLOR[selected.status as keyof typeof STATUS_COLOR] || STATUS_COLOR.planned).text, padding: "3px 12px", borderRadius: 100, fontSize: 11, fontFamily: "var(--font-display)", fontWeight: 700, letterSpacing: "0.05em" }}>
                       {selected.tag}
                     </span>
                   </div>
@@ -146,7 +173,7 @@ export default function Learning() {
                 <p style={{ color: "var(--muted)", fontSize: 13, lineHeight: 1.6, margin: 0 }}>{selected.why}</p>
               </div>
 
-              {selected.resources.length > 0 && (
+              {selected.resources && selected.resources.length > 0 && (
                 <div>
                   <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, letterSpacing: "0.1em", color: "var(--muted)", marginBottom: 12 }}>RESOURCES</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>

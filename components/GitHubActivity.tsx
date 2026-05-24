@@ -46,12 +46,32 @@ export default function GitHubActivity() {
         const res = await fetch('/api/github');
         const data = await res.json();
         console.log('github',data)
-        if (data.commits) setCommits(data.commits);
+        
+        // Try to get custom overrides from site-data
+        const sd = (window as any).__SITE_DATA__;
+        
+        if (data.commits) {
+          if (sd && sd.commits && sd.commits.length > 0) {
+            // Convert dashboard format (string dates) to numeric timestamps if possible
+            // or just use as is if formatRelativeDate can handle it.
+            // Actually, dashboard uses string dates like "2 hours ago".
+            // Let's adapt the display.
+            setCommits(sd.commits.map((c: any) => ({
+              ...c,
+              date: isNaN(Date.parse(c.date)) ? Date.now() : Date.parse(c.date),
+              displayDate: c.date // New property for manual display
+            })));
+          } else {
+            setCommits(data.commits);
+          }
+        }
+        
         if (data.stats) {
           setStats(prev => ({
             ...prev,
-            public_repos: data.stats.public_repos,
-            // total_contribs remains simulated for heatmap
+            public_repos: (sd && sd.ghStats && sd.ghStats.repos) || data.stats.public_repos,
+            streak: (sd && sd.ghStats && sd.ghStats.streak) || prev.streak,
+            total_contribs: (sd && sd.ghStats && sd.ghStats.totalContribs) || prev.total_contribs,
           }));
         }
       } catch (err) {
@@ -83,7 +103,7 @@ export default function GitHubActivity() {
         {/* Stats row */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32, maxWidth: 480 }} className="gh-stats">
           {[
-            { label: "Contributions this year", val: totalContribs },
+            { label: "Contributions this year", val: stats.total_contribs || totalContribs },
             { label: "Day streak", val: stats.streak },
             { label: "Public repos", val: stats.public_repos },
           ].map(s => (
@@ -144,7 +164,9 @@ export default function GitHubActivity() {
                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", flexShrink: 0 }} />
                 <span style={{ fontFamily: "monospace", fontSize: 12, color: "var(--accent-2)", flexShrink: 0, minWidth: 120 }}>{c.repo}</span>
                 <span style={{ fontFamily: "monospace", fontSize: 13, color: "var(--text)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.message}</span>
-                <span style={{ fontSize: 12, color: "var(--muted)", flexShrink: 0 }}>{formatRelativeDate(c.date)}</span>
+                <span style={{ fontSize: 12, color: "var(--muted)", flexShrink: 0 }}>
+                  {(c as any).displayDate || formatRelativeDate(c.date)}
+                </span>
               </a>
             ))
           ) : (

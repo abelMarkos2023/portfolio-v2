@@ -28,7 +28,25 @@ export default function Portfolio() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
-    setData(getSiteData());
+    // Fetch site data
+    fetch("/api/site-data")
+      .then(r => r.json())
+      .then(sd => {
+        if (sd) {
+          setData(prev => ({ 
+            ...prev, 
+            ...sd, 
+            hero: { ...prev.hero, ...sd.hero }, 
+            bio: { ...prev.bio, ...sd.bio }, 
+            theme: { ...prev.theme, ...sd.theme } 
+          }));
+          // Add custom properties if needed by child components
+          (window as any).__SITE_DATA__ = sd;
+        }
+      })
+      .catch(e => console.error("Failed to fetch site data:", e));
+
+    // Fetch projects
     fetch("/api/projects")
       .then(r => r.json())
       .then(p => {

@@ -81,7 +81,20 @@ export default function Dashboard() {
       fetch("/api/certificates").then(r => r.json()),
       fetch("/api/projects").then(r => r.json()),
     ]).then(([, sd, cl, pl]) => {
-      if (sd) setData({ ...DEFAULT_DATA, ...sd, hero: { ...DEFAULT_DATA.hero, ...sd.hero }, bio: { ...DEFAULT_DATA.bio, ...sd.bio }, theme: { ...DEFAULT_DATA.theme, ...sd.theme } });
+      if (sd) {
+        setData({ 
+          ...DEFAULT_DATA, 
+          ...sd, 
+          hero: { ...DEFAULT_DATA.hero, ...sd.hero }, 
+          bio: { ...DEFAULT_DATA.bio, ...sd.bio }, 
+          theme: { ...DEFAULT_DATA.theme, ...sd.theme } 
+        });
+        if (sd.skills) setSkills(sd.skills);
+        if (sd.terminalCmds) setTerminalCmds(sd.terminalCmds);
+        if (sd.ghStats) setGhStats(sd.ghStats);
+        if (sd.commits) setCommits(sd.commits);
+        if (sd.learningTopics) setLearningTopics(sd.learningTopics);
+      }
       if (Array.isArray(cl)) setCerts(cl.map((c: any) => ({ ...c, skills: Array.isArray(c.skills) ? c.skills.join(", ") : c.skills })));
       if (Array.isArray(pl)) setProjects(pl.map((p: any) => ({ ...p, tech: Array.isArray(p.tech) ? p.tech.join(", ") : p.tech })));
       setLoading(false);
@@ -90,7 +103,19 @@ export default function Dashboard() {
 
   const save = async () => {
     setSaving(true);
-    await fetch("/api/site-data", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+    const fullData = {
+      ...data,
+      skills,
+      terminalCmds,
+      ghStats,
+      commits,
+      learningTopics
+    };
+    await fetch("/api/site-data", { 
+      method: "POST", 
+      headers: { "Content-Type": "application/json" }, 
+      body: JSON.stringify(fullData) 
+    });
     setSaved(true); setSaving(false);
     setTimeout(() => setSaved(false), 2000);
   };

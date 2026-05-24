@@ -88,8 +88,23 @@ export default function Terminal() {
   const [input, setInput] = useState("");
   const [history, setHistory] = useState<string[]>([]);
   const [histIdx, setHistIdx] = useState(-1);
+  const [commands, setCommands] = useState(COMMANDS);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Try to get dynamic commands from window object
+    const sd = (window as any).__SITE_DATA__;
+    if (sd && sd.terminalCmds) {
+      setCommands(prev => ({ ...prev, ...sd.terminalCmds }));
+    } else {
+      fetch("/api/site-data")
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.terminalCmds) setCommands(prev => ({ ...prev, ...data.terminalCmds }));
+        });
+    }
+  }, []);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [lines]);
 
@@ -101,7 +116,7 @@ export default function Terminal() {
 
     if (trimmed === "clear") { setLines([]); return; }
 
-    const result = COMMANDS[trimmed];
+    const result = commands[trimmed];
     if (result) {
       const outputs = Array.isArray(result) ? result : [result];
       outputs.forEach(t => newLines.push({ type: "output", text: t }));

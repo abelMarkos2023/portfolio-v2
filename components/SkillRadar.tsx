@@ -18,10 +18,24 @@ function polarToCart(angle: number, r: number, cx: number, cy: number) {
 export default function SkillRadar() {
   const [progress, setProgress] = useState(0);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [skills, setSkills] = useState(SKILLS);
   const ref = useRef<HTMLDivElement>(null);
   const animated = useRef(false);
 
   useEffect(() => {
+    // Try to get dynamic skills from window object (set in app/page.tsx)
+    const sd = (window as any).__SITE_DATA__;
+    if (sd && sd.skills) {
+      setSkills(sd.skills);
+    } else {
+      // Fallback: Fetch if not available
+      fetch("/api/site-data")
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.skills) setSkills(data.skills);
+        });
+    }
+
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting && !animated.current) {
         animated.current = true;
@@ -40,12 +54,12 @@ export default function SkillRadar() {
   }, []);
 
   const cx = 200, cy = 200, r = 150;
-  const n = SKILLS.length;
+  const n = skills.length;
   const levels = [0.2, 0.4, 0.6, 0.8, 1.0];
 
-  const polygonPoints = SKILLS.map((s, i) => {
+  const polygonPoints = skills.map((s, i) => {
     const angle = (360 / n) * i;
-    const val = s.value * progress;
+    const val = (s.value / 100) * progress;
     return polarToCart(angle, r * val, cx, cy);
   });
 
@@ -63,7 +77,7 @@ export default function SkillRadar() {
           <svg viewBox="0 0 400 400" style={{ width: "100%", maxWidth: 400 }}>
             {/* Grid levels */}
             {levels.map(l => {
-              const pts = SKILLS.map((_, i) => {
+              const pts = skills.map((_, i) => {
                 const p = polarToCart((360 / n) * i, r * l, cx, cy);
                 return `${p.x},${p.y}`;
               }).join(" ");
@@ -71,7 +85,7 @@ export default function SkillRadar() {
             })}
 
             {/* Axes */}
-            {SKILLS.map((_, i) => {
+            {skills.map((_, i) => {
               const end = polarToCart((360 / n) * i, r, cx, cy);
               return <line key={i} x1={cx} y1={cy} x2={end.x} y2={end.y} stroke="var(--border)" strokeWidth={1} />;
             })}
@@ -89,7 +103,7 @@ export default function SkillRadar() {
             ))}
 
             {/* Labels */}
-            {SKILLS.map((s, i) => {
+            {skills.map((s, i) => {
               const angle = (360 / n) * i;
               const lp = polarToCart(angle, r + 28, cx, cy);
               const isActive = hovered === i;
@@ -106,7 +120,7 @@ export default function SkillRadar() {
 
           {/* Legend bars */}
           <div>
-            {SKILLS.map((s, i) => (
+            {skills.map((s, i) => (
               <div key={i} style={{ marginBottom: 20 }}
                 onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
@@ -114,11 +128,11 @@ export default function SkillRadar() {
                     {s.label}
                   </span>
                   <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--accent)" }}>
-                    {Math.round(s.value * progress * 100)}%
+                    {Math.round((s.value / 100) * progress * 100)}%
                   </span>
                 </div>
                 <div style={{ height: 6, background: "var(--border)", borderRadius: 100, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${s.value * progress * 100}%`, background: `linear-gradient(90deg, var(--accent), var(--accent-2))`, borderRadius: 100, transition: "width 0.1s" }} />
+                  <div style={{ height: "100%", width: `${(s.value / 100) * progress * 100}%`, background: `linear-gradient(90deg, var(--accent), var(--accent-2))`, borderRadius: 100, transition: "width 0.1s" }} />
                 </div>
                 {s.label === "Mobile" && (
                   <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4, fontStyle: "italic" }}>
