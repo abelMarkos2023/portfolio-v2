@@ -39,6 +39,8 @@ export default function Certificates() {
     fetch("/api/certificates").then(r => r.json()).then(d => { if (Array.isArray(d)) setCerts(d); });
   }, []);
 
+  console.log('certificate',certs)
+
   const startAuto = () => {
     stopAuto();
     autoRef.current = setInterval(() => setActive(a => (a + 1) % (certs.length || 1)), 4000);

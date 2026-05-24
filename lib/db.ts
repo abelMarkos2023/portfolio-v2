@@ -21,6 +21,8 @@ export async function getDb(): Promise<Database> {
   if (fs.existsSync(DB_PATH)) {
     const fileBuffer = fs.readFileSync(DB_PATH);
     db = new SqlJs.Database(fileBuffer);
+    // Ensure all tables exist (important for migrations)
+    initSchema(db);
   } else {
     db = new SqlJs.Database();
     initSchema(db);
@@ -32,6 +34,7 @@ function initSchema(database: Database) {
   database.run(`CREATE TABLE IF NOT EXISTS site_data (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER DEFAULT (strftime('%s','now')))`);
   database.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, created_at INTEGER DEFAULT (strftime('%s','now')))`);
   database.run(`CREATE TABLE IF NOT EXISTS certificates (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, issuer TEXT NOT NULL, date TEXT NOT NULL, credential_url TEXT, image_url TEXT, skills TEXT, sort_order INTEGER DEFAULT 0)`);
+  database.run(`CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, description TEXT, tech TEXT, live_url TEXT, github_url TEXT, image TEXT, featured INTEGER DEFAULT 0, sort_order INTEGER DEFAULT 0)`);
 }
 
 export function saveDb(database: Database) {

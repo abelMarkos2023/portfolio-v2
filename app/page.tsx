@@ -22,12 +22,19 @@ const Twitter = ({ size }: { size: number }) => (
 
 export default function Portfolio() {
   const [data, setData] = useState<SiteData>(DEFAULT_DATA);
+  const [projects, setProjects] = useState<any[]>([]);
   const [mounted, setMounted] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     setData(getSiteData());
+    fetch("/api/projects")
+      .then(r => r.json())
+      .then(p => {
+        if (Array.isArray(p)) setProjects(p);
+      })
+      .catch(e => console.error("Failed to fetch projects:", e));
     setMounted(true);
 
     const observer = new IntersectionObserver(
@@ -132,7 +139,7 @@ export default function Portfolio() {
         </div>
 
         <div className="projects-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(480px, 100%), 1fr))", gap: 24 }}>
-          {data.projects.map((p, i) => (
+          {projects.map((p, i) => (
             <div key={p.id} className="card" style={{ padding: 32, position: "relative", overflow: "hidden" }}>
               <div style={{ position: "absolute", top: -20, right: -20, fontSize: 120, opacity: 0.04, fontFamily: "var(--font-display)", fontWeight: 900, color: "var(--accent)" }}>
                 {String(i + 1).padStart(2, "0")}
@@ -141,22 +148,27 @@ export default function Portfolio() {
               <h3 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, letterSpacing: "-0.01em" }}>{p.title}</h3>
               <p style={{ color: "var(--muted)", lineHeight: 1.7, marginBottom: 20, fontSize: 15 }}>{p.description}</p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
-                {p.tech.map(t => (
+                {p.tech.map((t: string) => (
                   <span key={t} style={{ background: "rgba(110,231,183,0.08)", border: "1px solid rgba(110,231,183,0.15)", color: "var(--accent)", padding: "4px 12px", borderRadius: 100, fontSize: 12, fontFamily: "var(--font-display)", fontWeight: 600, letterSpacing: "0.05em" }}>
                     {t}
                   </span>
                 ))}
               </div>
               <div style={{ display: "flex", gap: 12 }}>
-                <a href={p.liveUrl} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--accent)", textDecoration: "none", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, letterSpacing: "0.05em" }}>
+                <a href={p.live_url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--accent)", textDecoration: "none", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, letterSpacing: "0.05em" }}>
                   <Globe size={14} /> LIVE DEMO
                 </a>
-                <a href={p.githubUrl} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--muted)", textDecoration: "none", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, letterSpacing: "0.05em" }}>
+                <a href={p.github_url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--muted)", textDecoration: "none", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, letterSpacing: "0.05em" }}>
                   <Github size={14} /> SOURCE
                 </a>
               </div>
             </div>
           ))}
+          {projects.length === 0 && (
+            <div style={{ gridColumn: "1 / -1", textAlign: "center", color: "var(--muted)", padding: 60, border: "1px dashed var(--border)", borderRadius: 12 }}>
+              No projects added yet. Add some in the dashboard!
+            </div>
+          )}
         </div>
       </section>
 

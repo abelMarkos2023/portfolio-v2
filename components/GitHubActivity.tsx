@@ -1,7 +1,20 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
-type CommitEvent = { repo: string; message: string; date: string };
+type CommitEvent = { repo: string; message: string; date: number; url: string };
+
+function formatRelativeDate(timestamp: number) {
+  const diff = Date.now() - timestamp;
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+  if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+  return "just now";
+}
 
 function generateHeatmap() {
   const weeks = 52;
@@ -18,23 +31,39 @@ function generateHeatmap() {
   return data;
 }
 
-const MOCK_COMMITS: CommitEvent[] = [
-  { repo: "shopflow", message: "feat: add stripe webhook handler", date: "2 hours ago" },
-  { repo: "stayfinder", message: "fix: resolve booking overlap bug", date: "1 day ago" },
-  { repo: "portfolio", message: "chore: add terminal easter egg", date: "2 days ago" },
-  { repo: "shopflow", message: "feat: implement product search with filters", date: "3 days ago" },
-  { repo: "rn-experiments", message: "feat: first React Native screen", date: "4 days ago" },
-  { repo: "stayfinder", message: "refactor: extract map component", date: "5 days ago" },
-];
-
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 export default function GitHubActivity() {
-  const [heatmap] = useState(generateHeatmap);
+  const heatmap = useMemo(generateHeatmap, []);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; val: number } | null>(null);
+  const [commits, setCommits] = useState<CommitEvent[]>([]);
+  const [stats, setStats] = useState({ public_repos: 0, total_contribs: 0, streak: 14 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const res = await fetch('/api/github');
+        const data = await res.json();
+        console.log('github',data)
+        if (data.commits) setCommits(data.commits);
+        if (data.stats) {
+          setStats(prev => ({
+            ...prev,
+            public_repos: data.stats.public_repos,
+            // total_contribs remains simulated for heatmap
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch GitHub data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
   const totalContribs = heatmap.flat().reduce((a, b) => a + b, 0);
-  const streak = 14;
 
   const cellColor = (v: number) => {
     if (v === 0) return "var(--border)";
@@ -55,11 +84,13 @@ export default function GitHubActivity() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32, maxWidth: 480 }} className="gh-stats">
           {[
             { label: "Contributions this year", val: totalContribs },
-            { label: "Day streak", val: streak },
-            { label: "Public repos", val: 18 },
+            { label: "Day streak", val: stats.streak },
+            { label: "Public repos", val: stats.public_repos },
           ].map(s => (
             <div key={s.label} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, padding: "16px 20px" }}>
-              <div style={{ fontSize: "clamp(22px,4vw,32px)", fontWeight: 800, fontFamily: "var(--font-display)", color: "var(--accent)" }}>{s.val}</div>
+              <div style={{ fontSize: "clamp(22px,4vw,32px)", fontWeight: 800, fontFamily: "var(--font-display)", color: "var(--accent)" }}>
+                {loading ? "..." : s.val}
+              </div>
               <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>{s.label}</div>
             </div>
           ))}
@@ -102,16 +133,23 @@ export default function GitHubActivity() {
           <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, letterSpacing: "0.08em", color: "var(--muted)" }}>
             RECENT COMMITS
           </div>
-          {MOCK_COMMITS.map((c, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 24px", borderBottom: i < MOCK_COMMITS.length - 1 ? "1px solid var(--border)" : "none", transition: "background 0.15s" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", flexShrink: 0 }} />
-              <span style={{ fontFamily: "monospace", fontSize: 12, color: "var(--accent-2)", flexShrink: 0, minWidth: 120 }}>{c.repo}</span>
-              <span style={{ fontFamily: "monospace", fontSize: 13, color: "var(--text)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.message}</span>
-              <span style={{ fontSize: 12, color: "var(--muted)", flexShrink: 0 }}>{c.date}</span>
-            </div>
-          ))}
+          {loading ? (
+            <div style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>Loading activity...</div>
+          ) : commits.length > 0 ? (
+            commits.map((c, i) => (
+              <a key={i} href={c.url} target="_blank" rel="noopener noreferrer" 
+                style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 24px", borderBottom: i < commits.length - 1 ? "1px solid var(--border)" : "none", transition: "background 0.15s", textDecoration: "none" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", flexShrink: 0 }} />
+                <span style={{ fontFamily: "monospace", fontSize: 12, color: "var(--accent-2)", flexShrink: 0, minWidth: 120 }}>{c.repo}</span>
+                <span style={{ fontFamily: "monospace", fontSize: 13, color: "var(--text)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.message}</span>
+                <span style={{ fontSize: 12, color: "var(--muted)", flexShrink: 0 }}>{formatRelativeDate(c.date)}</span>
+              </a>
+            ))
+          ) : (
+            <div style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No recent public commits found.</div>
+          )}
         </div>
       </div>
     </section>

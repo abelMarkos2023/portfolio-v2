@@ -13,7 +13,6 @@ export type SiteData = {
   hero: { title: string; subtitle: string; tagline: string; ctaLabel: string; ctaUrl: string; };
   bio: { name: string; role: string; about: string; location: string; email: string; github: string; linkedin: string; twitter: string; };
   theme: { accent: string; accent2: string; bg: string; };
-  projects: Project[];
 };
 
 export const DEFAULT_DATA: SiteData = {
@@ -35,22 +34,6 @@ export const DEFAULT_DATA: SiteData = {
     twitter: "https://twitter.com",
   },
   theme: { accent: "#6ee7b7", accent2: "#818cf8", bg: "#080b12" },
-  projects: [
-    {
-      id: "1",
-      title: "ShopFlow — E-Commerce Platform",
-      description: "A full-featured e-commerce platform with product catalog, cart, checkout, payment integration, and admin dashboard. Built with Next.js and Stripe.",
-      tech: ["Next.js", "TypeScript", "Stripe", "PostgreSQL", "Prisma", "Tailwind"],
-      liveUrl: "#", githubUrl: "#", image: "🛒", featured: true,
-    },
-    {
-      id: "2",
-      title: "StayFinder — Rental Marketplace",
-      description: "An Airbnb-inspired rental platform with property listings, booking system, map integration, and host/guest dashboards. Real-time availability calendar.",
-      tech: ["Next.js", "TypeScript", "MongoDB", "Mapbox", "Cloudinary", "NextAuth"],
-      liveUrl: "#", githubUrl: "#", image: "🏠", featured: true,
-    },
-  ],
 };
 
 const KEY = "portfolio_data";

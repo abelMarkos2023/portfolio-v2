@@ -9,25 +9,43 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getSession();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const cert = await req.json();
-  const db = await getDb();
-  dbRun(db, 'INSERT INTO certificates (title,issuer,date,credential_url,image_url,skills,sort_order) VALUES (?,?,?,?,?,?,?)',
-    [cert.title, cert.issuer, cert.date, cert.credential_url || '', cert.image_url || '', (cert.skills || []).join(','), cert.sort_order || 99]);
-  saveDb(db);
-  return NextResponse.json({ ok: true });
+  try {
+    const user = await getSession();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const cert = await req.json();
+    const db = await getDb();
+    
+    // Ensure skills is an array and join it
+    const skillsString = Array.isArray(cert.skills) ? cert.skills.join(',') : (cert.skills || '');
+    
+    dbRun(db, 'INSERT INTO certificates (title,issuer,date,credential_url,image_url,skills,sort_order) VALUES (?,?,?,?,?,?,?)',
+      [cert.title, cert.issuer, cert.date, cert.credential_url || '', cert.image_url || '', skillsString, cert.sort_order || 99]);
+    saveDb(db);
+    return NextResponse.json({ ok: true });
+  } catch (error: any) {
+    console.error('Error adding certificate:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
 
 export async function PUT(req: NextRequest) {
-  const user = await getSession();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const cert = await req.json();
-  const db = await getDb();
-  dbRun(db, 'UPDATE certificates SET title=?,issuer=?,date=?,credential_url=?,image_url=?,skills=?,sort_order=? WHERE id=?',
-    [cert.title, cert.issuer, cert.date, cert.credential_url || '', cert.image_url || '', (cert.skills || []).join(','), cert.sort_order || 0, cert.id]);
-  saveDb(db);
-  return NextResponse.json({ ok: true });
+  try {
+    const user = await getSession();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const cert = await req.json();
+    const db = await getDb();
+    
+    // Ensure skills is an array and join it
+    const skillsString = Array.isArray(cert.skills) ? cert.skills.join(',') : (cert.skills || '');
+    
+    dbRun(db, 'UPDATE certificates SET title=?,issuer=?,date=?,credential_url=?,image_url=?,skills=?,sort_order=? WHERE id=?',
+      [cert.title, cert.issuer, cert.date, cert.credential_url || '', cert.image_url || '', skillsString, cert.sort_order || 0, cert.id]);
+    saveDb(db);
+    return NextResponse.json({ ok: true });
+  } catch (error: any) {
+    console.error('Error updating certificate:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: NextRequest) {

@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Settings, Layout, User, Folder, Eye, Save, Plus, Trash2, ChevronLeft, Palette, Award, Code2, LogOut, Key, Menu, X } from "lucide-react";
-import { DEFAULT_DATA, SiteData, Project } from "@/lib/store";
+import { DEFAULT_DATA, SiteData } from "@/lib/store";
 
 type Tab = "hero" | "bio" | "theme" | "projects" | "certificates" | "skills" | "github" | "terminal" | "learning" | "settings";
 
@@ -70,15 +70,20 @@ export default function Dashboard() {
   const [pwMsg, setPwMsg] = useState("");
   const [newCert, setNewCert] = useState<Cert>({ title: "", issuer: "", date: "", credential_url: "", skills: "" });
   const [editingCert, setEditingCert] = useState<number | null>(null);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [editingProject, setEditingProject] = useState<number | null>(null);
+  const [newProject, setNewProject] = useState({ title: "", description: "", tech: "", live_url: "", github_url: "", image: "💻", featured: false });
 
   useEffect(() => {
     Promise.all([
       fetch("/api/auth/me").then(r => { if (!r.ok) router.replace("/login"); return r.json(); }),
       fetch("/api/site-data").then(r => r.json()),
       fetch("/api/certificates").then(r => r.json()),
-    ]).then(([, sd, cl]) => {
+      fetch("/api/projects").then(r => r.json()),
+    ]).then(([, sd, cl, pl]) => {
       if (sd) setData({ ...DEFAULT_DATA, ...sd, hero: { ...DEFAULT_DATA.hero, ...sd.hero }, bio: { ...DEFAULT_DATA.bio, ...sd.bio }, theme: { ...DEFAULT_DATA.theme, ...sd.theme } });
       if (Array.isArray(cl)) setCerts(cl.map((c: any) => ({ ...c, skills: Array.isArray(c.skills) ? c.skills.join(", ") : c.skills })));
+      if (Array.isArray(pl)) setProjects(pl.map((p: any) => ({ ...p, tech: Array.isArray(p.tech) ? p.tech.join(", ") : p.tech })));
       setLoading(false);
     }).catch(() => router.replace("/login"));
   }, []);
@@ -98,14 +103,45 @@ export default function Dashboard() {
   const updateH = (k: string, v: string) => setData(d => ({ ...d, hero: { ...d.hero, [k]: v } }));
   const updateB = (k: string, v: string) => setData(d => ({ ...d, bio: { ...d.bio, [k]: v } }));
   const updateT = (k: string, v: string) => setData(d => ({ ...d, theme: { ...d.theme, [k]: v } }));
-  const updateP = (id: string, k: keyof Project, v: any) => setData(d => ({ ...d, projects: d.projects.map(p => p.id === id ? { ...p, [k]: v } : p) }));
 
-  const addProject = () => setData(d => ({ ...d, projects: [...d.projects, { id: Date.now().toString(), title: "New Project", description: "", tech: [], liveUrl: "#", githubUrl: "#", image: "💻", featured: false }] }));
-  const removeProject = (id: string) => setData(d => ({ ...d, projects: d.projects.filter(p => p.id !== id) }));
+  const saveProject = async (proj: any) => {
+    const method = proj.id ? "PUT" : "POST";
+    const projToSave = {
+      ...proj,
+      tech: proj.tech.split(",").map((s: string) => s.trim()).filter(Boolean)
+    };
+    await fetch("/api/projects", { 
+      method, 
+      headers: { "Content-Type": "application/json" }, 
+      body: JSON.stringify(projToSave) 
+    });
+    const updated = await fetch("/api/projects").then(r => r.json());
+    if (Array.isArray(updated)) {
+      setProjects(updated.map((p: any) => ({ ...p, tech: Array.isArray(p.tech) ? p.tech.join(", ") : p.tech })));
+    } else {
+      console.error("Failed to fetch updated projects:", updated);
+    }
+    setEditingProject(null);
+    setNewProject({ title: "", description: "", tech: "", live_url: "", github_url: "", image: "💻", featured: false });
+  };
+
+  const deleteProject = async (id: number) => {
+    await fetch("/api/projects", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    setProjects(p => p.filter(x => x.id !== id));
+  };
 
   const saveCert = async (cert: Cert) => {
     const method = cert.id ? "PUT" : "POST";
-    await fetch("/api/certificates", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(cert) });
+    // Convert skills string back to array for the API
+    const certToSave = {
+      ...cert,
+      skills: cert.skills.split(",").map(s => s.trim()).filter(Boolean)
+    };
+    await fetch("/api/certificates", { 
+      method, 
+      headers: { "Content-Type": "application/json" }, 
+      body: JSON.stringify(certToSave) 
+    });
     const updated = await fetch("/api/certificates").then(r => r.json());
     setCerts(updated.map((c: any) => ({ ...c, skills: Array.isArray(c.skills) ? c.skills.join(", ") : c.skills })));
     setEditingCert(null);
@@ -147,6 +183,33 @@ export default function Dashboard() {
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => onSave(local)} style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-2))", color: "#000", border: "none", borderRadius: 8, padding: "9px 18px", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Save Certificate</button>
           <button onClick={onCancel} style={{ background: "var(--bg-card)", color: "var(--muted)", border: "1px solid var(--border)", borderRadius: 8, padding: "9px 18px", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+        </div>
+      </div>
+    );
+  };
+
+  const ProjectForm = ({ project, onSave, onCancel }: { project: any; onSave: (p: any) => void; onCancel: () => void }) => {
+    const [local, setLocal] = useState(project);
+    const u = (k: string, v: any) => setLocal((c: any) => ({ ...c, [k]: v }));
+    return (
+      <div style={{ background: "var(--bg)", border: "1px solid var(--accent)", borderRadius: 12, padding: 24, marginTop: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "70px 1fr", gap: 12, marginBottom: 12 }}>
+          <div><label style={lbl}>ICON</label><input style={{ ...inp, textAlign: "center", fontSize: 22 }} value={local.image} onChange={e => u("image", e.target.value)} /></div>
+          <div><label style={lbl}>TITLE</label><input style={inp} value={local.title} onChange={e => u("title", e.target.value)} /></div>
+        </div>
+        <div style={field}><label style={lbl}>DESCRIPTION</label><textarea style={ta} value={local.description} onChange={e => u("description", e.target.value)} /></div>
+        <div style={field}><label style={lbl}>TECH STACK (comma separated)</label><input style={inp} value={local.tech} onChange={e => u("tech", e.target.value)} /></div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+          <div><label style={lbl}>LIVE URL</label><input style={inp} value={local.live_url} onChange={e => u("live_url", e.target.value)} /></div>
+          <div><label style={lbl}>GITHUB URL</label><input style={inp} value={local.github_url} onChange={e => u("github_url", e.target.value)} /></div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+          <input type="checkbox" checked={local.featured} onChange={e => u("featured", e.target.checked)} id="feat-check" style={{ accentColor: "var(--accent)" }} />
+          <label htmlFor="feat-check" style={{ ...lbl, marginBottom: 0, cursor: "pointer" }}>FEATURED PROJECT</label>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => onSave(local)} style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-2))", color: "#000", border: "none", borderRadius: 8, padding: "10px 20px", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Save Project</button>
+          <button onClick={onCancel} style={{ background: "var(--bg-card)", color: "var(--muted)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 20px", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Cancel</button>
         </div>
       </div>
     );
@@ -249,26 +312,26 @@ export default function Dashboard() {
             {tab === "projects" && <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                 <div><h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, marginBottom: 4 }}>Projects</h2><p style={{ color: "var(--muted)", fontSize: 13 }}>Add and manage your showcase work.</p></div>
-                <button onClick={addProject} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(110,231,183,0.1)", border: "1px solid var(--accent)", color: "var(--accent)", padding: "9px 14px", borderRadius: 8, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12, cursor: "pointer" }}><Plus size={13} /> Add</button>
+                {editingProject !== -1 && <button onClick={() => setEditingProject(-1)} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(110,231,183,0.1)", border: "1px solid var(--accent)", color: "var(--accent)", padding: "9px 14px", borderRadius: 8, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12, cursor: "pointer" }}><Plus size={13} /> Add New</button>}
               </div>
-              {data.projects.map((p, i) => (
-                <div key={p.id} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 20, marginBottom: 14 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                    <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em" }}>PROJECT {i + 1}</span>
-                    <button onClick={() => removeProject(p.id)} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", padding: "6px 10px", borderRadius: 6, cursor: "pointer", fontSize: 12, fontFamily: "var(--font-display)", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}><Trash2 size={11} /> Remove</button>
+              {editingProject === -1 && <ProjectForm project={newProject} onSave={saveProject} onCancel={() => setEditingProject(null)} />}
+              {projects.map((p, i) => (
+                <div key={p.id ?? i}>
+                  <div style={{ background: "var(--bg-card)", border: `1px solid ${editingProject === i ? "var(--accent)" : "var(--border)"}`, borderRadius: 12, padding: "16px 20px", marginBottom: editingProject === i ? 0 : 10, display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ fontSize: 24 }}>{p.image}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14 }}>{p.title}</div>
+                      <div style={{ color: "var(--muted)", fontSize: 12 }}>{p.tech.split(",").slice(0, 3).join(" · ")}</div>
+                    </div>
+                    {p.featured && <span style={{ fontSize: 10, background: "var(--accent)", color: "#000", padding: "2px 6px", borderRadius: 4, fontFamily: "var(--font-display)", fontWeight: 800 }}>FEATURED</span>}
+                    <button onClick={() => setEditingProject(editingProject === i ? null : i)} style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--muted)", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11 }}>Edit</button>
+                    <button onClick={() => p.id && deleteProject(p.id)} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}><Trash2 size={11} /></button>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "70px 1fr", gap: 12, marginBottom: 12 }}>
-                    <div><label style={lbl}>ICON</label><input style={{ ...inp, textAlign: "center", fontSize: 22 }} value={p.image} onChange={e => updateP(p.id, "image", e.target.value)} /></div>
-                    <div><label style={lbl}>TITLE</label><input style={inp} value={p.title} onChange={e => updateP(p.id, "title", e.target.value)} /></div>
-                  </div>
-                  <div style={field}><label style={lbl}>DESCRIPTION</label><textarea style={ta} value={p.description} onChange={e => updateP(p.id, "description", e.target.value)} /></div>
-                  <div style={field}><label style={lbl}>TECH STACK (comma separated)</label><input style={inp} value={p.tech.join(", ")} onChange={e => updateP(p.id, "tech", e.target.value.split(",").map(t => t.trim()).filter(Boolean))} /></div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                    <div style={field}><label style={lbl}>LIVE URL</label><input style={inp} value={p.liveUrl} onChange={e => updateP(p.id, "liveUrl", e.target.value)} /></div>
-                    <div style={field}><label style={lbl}>GITHUB URL</label><input style={inp} value={p.githubUrl} onChange={e => updateP(p.id, "githubUrl", e.target.value)} /></div>
-                  </div>
+                  {editingProject === i && <ProjectForm project={p} onSave={saveProject} onCancel={() => setEditingProject(null)} />}
+                  {editingProject === i && <div style={{ marginBottom: 10 }} />}
                 </div>
               ))}
+              {projects.length === 0 && editingProject !== -1 && <div style={{ textAlign: "center", color: "var(--muted)", padding: 40, border: "1px dashed var(--border)", borderRadius: 12 }}>No projects yet — click "Add New" to get started.</div>}
             </>}
 
             {/* CERTIFICATES */}
