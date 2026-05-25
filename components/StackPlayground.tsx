@@ -147,7 +147,7 @@ export default function StackPlayground() {
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <p style={{ color: "var(--accent)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, letterSpacing: "0.15em", marginBottom: 12 }}>OPINIONATED PICKS</p>
         <h2 style={{ fontSize: "clamp(32px,5vw,52px)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 8 }}>Stack Playground</h2>
-        <p style={{ color: "var(--muted)", fontSize: 15, marginBottom: 40 }}>Tell me what you're building — I'll tell you what I'd use and why.</p>
+        <p style={{ color: "var(--muted)", fontSize: 15, marginBottom: 40 }}>Tell me what you are building — I'll tell you what I'd use and why.</p>
 
         {/* Breadcrumb */}
         {path.length > 1 && (
@@ -161,16 +161,16 @@ export default function StackPlayground() {
           </div>
         )}
 
-        <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "40px" }}>
+        <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, padding: "clamp(20px, 5vw, 40px)" }}>
           {!result ? (
             <>
-              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 24, marginBottom: 32, color: "var(--text)" }}>
+              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(20px, 4vw, 24px)", marginBottom: 32, color: "var(--text)" }}>
                 {step?.question}
               </h3>
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              <div className="stack-options" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                 {step?.options.map(o => (
                   <button key={o.label} onClick={() => choose(o.next)}
-                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 24px", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 10, cursor: "pointer", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)", transition: "all 0.2s" }}
+                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 20px", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 10, cursor: "pointer", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--text)", transition: "all 0.2s", flex: "1 1 auto", minWidth: "fit-content", justifyContent: "center" }}
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--accent)"; (e.currentTarget as HTMLElement).style.color = "var(--accent)"; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLElement).style.color = "var(--text)"; }}>
                     <span style={{ fontSize: 24 }}>{o.icon}</span> {o.label}
@@ -180,8 +180,8 @@ export default function StackPlayground() {
             </>
           ) : (
             <>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
-                <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, color: "var(--text)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28, gap: 16, flexWrap: "wrap" }}>
+                <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(20px, 4vw, 26px)", color: "var(--text)" }}>
                   My pick: {result.title}
                 </h3>
                 <button onClick={reset} style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--muted)", padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12, letterSpacing: "0.05em" }}>
@@ -190,7 +190,7 @@ export default function StackPlayground() {
               </div>
               <div style={{ display: "grid", gap: 12, marginBottom: 24 }}>
                 {result.stack.map((s, i) => (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "160px 140px 1fr", gap: 16, padding: "16px 20px", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 10, alignItems: "center" }}>
+                  <div key={i} className="stack-row" style={{ display: "grid", gridTemplateColumns: "160px 140px 1fr", gap: 16, padding: "16px 20px", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 10, alignItems: "center" }}>
                     <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "var(--accent)" }}>{s.name}</span>
                     <span style={{ fontSize: 12, color: "var(--muted)", fontFamily: "var(--font-display)", fontWeight: 600 }}>{s.role}</span>
                     <span style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>{s.why}</span>

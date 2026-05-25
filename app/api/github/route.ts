@@ -120,11 +120,6 @@ export async function GET() {
       // Fetch latest commit for each backfill repo in parallel
       const commitPromises = backfillRepos.map(async (repo) => {
         try {
-          const commitRes = await fetch(`https://api.github.com/users/${username}/events/public`, {
-            // Re-using events if possible, but events only go back 90 days.
-            // For older repos, we fetch the latest commit message.
-          });
-          
           // Actually, the most reliable way to get the LATEST commit message for an OLD repo 
           // is to hit the /commits endpoint for that specific repo.
           const repoCommitsRes = await fetch(`https://api.github.com/repos/${username}/${repo.name}/commits?per_page=1`, {

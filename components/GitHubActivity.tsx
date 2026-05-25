@@ -35,7 +35,6 @@ const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov
 
 export default function GitHubActivity() {
   const heatmap = useMemo(generateHeatmap, []);
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; val: number } | null>(null);
   const [commits, setCommits] = useState<CommitEvent[]>([]);
   const [stats, setStats] = useState({ public_repos: 0, total_contribs: 0, streak: 14 });
   const [loading, setLoading] = useState(true);
@@ -129,8 +128,6 @@ export default function GitHubActivity() {
                 {week.map((val, di) => (
                   <div
                     key={di}
-                    onMouseEnter={e => setTooltip({ x: e.clientX, y: e.clientY, val })}
-                    onMouseLeave={() => setTooltip(null)}
                     style={{ width: 12, height: 12, borderRadius: 2, background: cellColor(val), cursor: "default", transition: "transform 0.1s" }}
                     onMouseOver={e => (e.currentTarget.style.transform = "scale(1.3)")}
                     onMouseOut={e => (e.currentTarget.style.transform = "scale(1)")}

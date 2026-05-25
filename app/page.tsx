@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
-import { getSiteData, SiteData, DEFAULT_DATA } from "@/lib/store";
+import { useEffect, useState } from "react";
+import { SiteData, DEFAULT_DATA } from "@/lib/store";
 import { Mail, MapPin, ArrowRight, Globe, Menu, X } from "lucide-react";
 import dynamic from "next/dynamic";
 const Terminal = dynamic(() => import("@/components/Terminal"), { ssr: false });

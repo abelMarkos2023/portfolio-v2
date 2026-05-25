@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Settings, Layout, User, Folder, Eye, Save, Plus, Trash2, ChevronLeft, Palette, Award, Code2, LogOut, Key, Menu, X } from "lucide-react";
+import { Settings, Layout, User, Folder, Eye, Save, Plus, Trash2, Palette, Award, Code2, LogOut, Key, Menu, X } from "lucide-react";
 import { DEFAULT_DATA, SiteData } from "@/lib/store";
 
 type Tab = "hero" | "bio" | "theme" | "projects" | "certificates" | "skills" | "github" | "terminal" | "learning" | "settings";

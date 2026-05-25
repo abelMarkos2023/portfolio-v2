@@ -1,14 +1,3 @@
-export type Project = {
-  id: string;
-  title: string;
-  description: string;
-  tech: string[];
-  liveUrl: string;
-  githubUrl: string;
-  image: string;
-  featured: boolean;
-};
-
 export type SiteData = {
   hero: { title: string; subtitle: string; tagline: string; ctaLabel: string; ctaUrl: string; };
   bio: { name: string; role: string; about: string; location: string; email: string; github: string; linkedin: string; twitter: string; };
@@ -35,20 +24,3 @@ export const DEFAULT_DATA: SiteData = {
   },
   theme: { accent: "#6ee7b7", accent2: "#818cf8", bg: "#080b12" },
 };
-
-const KEY = "portfolio_data";
-
-export function getSiteData(): SiteData {
-  if (typeof window === "undefined") return DEFAULT_DATA;
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return DEFAULT_DATA;
-    const parsed = JSON.parse(raw);
-    return { ...DEFAULT_DATA, ...parsed, hero: { ...DEFAULT_DATA.hero, ...parsed.hero }, bio: { ...DEFAULT_DATA.bio, ...parsed.bio }, theme: { ...DEFAULT_DATA.theme, ...parsed.theme } };
-  } catch { return DEFAULT_DATA; }
-}
-
-export function setSiteData(data: SiteData): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(KEY, JSON.stringify(data));
-}
